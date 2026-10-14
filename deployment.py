@@ -7,7 +7,7 @@ from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 import json
-
+import shutil
 
 
 ################## Load config.json and correct path variable
@@ -20,7 +20,7 @@ model_path = os.path.join(config['output_model_path'])
 
 
 #################### Function for deployment
-def store_model_into_pickle(model):
+def store_model_into_pickle(model=None):
     """Copy trainedmodel.pkl, latestscore.txt and ingestedfiles.txt to production."""
     model_file = os.path.join(model_path, model or 'trainedmodel.pkl')
     score_file = os.path.join(model_path, 'latestscore.txt')
