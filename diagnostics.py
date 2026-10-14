@@ -61,9 +61,8 @@ def execution_time():
     timings = []
 
     for script in ('ingestion.py', 'training.py'):
-        shutil.copy(script, tmp_dir)
         start = timeit.default_timer()
-        subprocess.run([sys.executable, script], cwd=tmp_dir, check=True)
+        subprocess.run([sys.executable, script], check=True)
         timings.append(timeit.default_timer() - start)
     return timings
 
@@ -79,7 +78,7 @@ def _normalize(name):
     return re.sub(r'[-_.]+', '-', name).lower()
 
 
-def outdated_packages_list():
+def outdated_packages_list(requirements_file='requirements.txt'):
     """Return a table of package, current (pinned) version and latest version."""
     requirements = {}
     with open(requirements_file, 'r') as f:

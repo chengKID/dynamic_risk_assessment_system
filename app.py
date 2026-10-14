@@ -5,6 +5,8 @@ import pickle
 import json
 import os
 
+import diagnostics
+import scoring
 
 
 ###################### Set up variables for use in our script
@@ -15,36 +17,65 @@ with open('config.json','r') as f:
     config = json.load(f) 
 
 dataset_csv_path = os.path.join(config['output_folder_path']) 
-
-prediction_model = None
+test_data_path = os.path.join(config['test_data_path'])
+prod_deployment_path = os.path.join(config['prod_deployment_path'])
 
 
 ####################### Prediction Endpoint
 @app.route("/prediction", methods=['POST','OPTIONS'])
 def predict():        
-    # Load the dataset at the location supplied in the request into a DataFrame,
-    # then pass it to the Step 3 model_predictions function (deployed model).
-    return # Add return value for prediction outputs
+    """Predict with the deployed model on the dataset at the supplied file location."""
+    if request.method == 'OPTIONS':
+        return jsonify(), 200
+
+    payload = request.get_json(silent=True) or {}
+    filepath = payload.get('filepath') or request.form.get('filepath') or request.args.get('filepath')
+    if not filepath:
+        return jsonify({'error': "Provide the dataset location as 'filepath'."}), 400
+    if not os.path.isfile(filepath):
+        return jsonify({'error': f"File not found: {filepath}"}), 400
+
+    dataframe = pd.read_csv(filepath)
+    predictions = diagnostics.model_predictions(dataframe)
+    return jsonify({'predictions': predictions}), 200
+
 
 ####################### Scoring Endpoint
 @app.route("/scoring", methods=['GET','OPTIONS'])
 def scoring_endpoint():
-    # Score the deployed model on test_data_path/testdata.csv using score_model.
-    # Do not overwrite the deployed baseline score.
-    return # Add return value (a single F1 score number)
+    """F1 score of the deployed model on test_data_path/testdata.csv."""
+    if request.method == 'OPTIONS':
+        return jsonify(), 200
+
+    model = scoring.load_model(os.path.join(prod_deployment_path, 'trainedmodel.pkl'))
+    dataframe = pd.read_csv(os.path.join(test_data_path, 'testdata.csv'))
+    score = scoring.score_model(model, dataframe)
+    return jsonify({'f1_score': score}), 200
+
 
 ####################### Summary Statistics Endpoint
 @app.route("/summarystats", methods=['GET','OPTIONS'])
 def summarystats_endpoint():
-    # Return means, medians, and standard deviations for numeric columns.
-    return # Return a list of all calculated summary statistics
+    """Means, medians and standard deviations of the numeric columns."""
+    if request.method == 'OPTIONS':
+        return jsonify(), 200
+
+    summary_statistics = diagnostics.dataframe_summary()
+    return jsonify({'summary_statistics': summary_statistics}), 200
+
 
 ####################### Diagnostics Endpoint
 @app.route("/diagnostics", methods=['GET','OPTIONS'])
 def diagnostics_endpoint():
-    # Return ingestion/training timings, missing-value percentages for all columns,
-    # and the dependency version table. Do not replace the deployed model.
-    return # Add return value for all diagnostics
+    """Timings, missing-value percentages and the dependency version table."""
+    if request.method == 'OPTIONS':
+        return jsonify(), 200
+    
+    return jsonify({
+        'execution_time_seconds': diagnostics.execution_time(),
+        'missing_data_percent': diagnostics.missing_data(),
+        'dependencies': diagnostics.outdated_packages_list().to_dict(orient='records'),
+    }), 200
 
 if __name__ == "__main__":    
     app.run(host='0.0.0.0', port=8000, debug=True, threaded=True)

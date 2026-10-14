@@ -8,6 +8,7 @@ import seaborn as sns
 import json
 import os
 
+from diagnostics import model_predictions
 
 
 ############### Load config.json and get path variables
@@ -15,17 +16,35 @@ with open('config.json','r') as f:
     config = json.load(f) 
 
 dataset_csv_path = os.path.join(config['output_folder_path']) 
+test_data_path = os.path.join(config['test_data_path'])
+output_model_path = os.path.join(config['output_model_path'])
 
-
+TARGET = 'exited'
 
 
 ############## Function for reporting
 def score_model():
-    # Calculate a confusion matrix using the test data and the deployed model
-    # and write the confusion matrix to the workspace
+    """Plot the deployed model's confusion matrix on the test data."""
+    test_data = pd.read_csv(os.path.join(test_data_path, 'testdata.csv'))
+    y_true = test_data[TARGET]
+    y_pred = model_predictions(test_data)
 
+    labels = [0, 1]
+    matrix = metrics.confusion_matrix(y_true, y_pred, labels=labels)
 
+    fig, ax = plt.subplots(figsize=(6, 5))
+    sns.heatmap(matrix, annot=True, fmt='d', cmap='Blues', cbar=False,
+                xticklabels=labels, yticklabels=labels, ax=ax)
+    ax.set_xlabel('Predicted label')
+    ax.set_ylabel('True label')
+    ax.set_title('Confusion Matrix (Test Data)')
+    fig.tight_layout()
 
+    os.makedirs(output_model_path, exist_ok=True)
+    fig.savefig(os.path.join(output_model_path, 'confusionmatrix.png'))
+    plt.close(fig)
+
+    return matrix
 
 
 if __name__ == '__main__':
