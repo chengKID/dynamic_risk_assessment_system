@@ -1,0 +1,1 @@
+*/10 * * * * cd /workspace/cd0583-project-starter-file && /opt/conda/envs/ml/bin/python fullprocess.py >> /workspace/cd0583-project-starter-file/cronjob.log 2>&1
