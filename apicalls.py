@@ -1,5 +1,6 @@
 import os
 import json
+import sys
 
 import requests
 
@@ -20,21 +21,18 @@ def call(method, endpoint, **kwargs):
     return response.json()
 
 
-# Call each API endpoint and store the responses
-response1 = call('POST', '/prediction', json={'filepath': 'testdata/testdata.csv'})
-response2 = call('GET', '/scoring')
-response3 = call('GET', '/summarystats')
-response4 = call('GET', '/diagnostics')
+def main(output_filename='apireturns.txt'):
+    responses = {
+        'prediction': call('POST', '/prediction', json={'filepath': 'testdata/testdata.csv'}),
+        'scoring': call('GET', '/scoring'),
+        'summarystats': call('GET', '/summarystats'),
+        'diagnostics': call('GET', '/diagnostics'),
+    }
 
-# Combine all API responses
-responses = {
-    'prediction': response1,
-    'scoring': response2,
-    'summarystats': response3,
-    'diagnostics': response4,
-}
+    os.makedirs(output_model_path, exist_ok=True)
+    with open(os.path.join(output_model_path, output_filename), 'w') as f:
+        json.dump(responses, f, indent=4)
 
-# Write the responses to your workspace
-os.makedirs(output_model_path, exist_ok=True)
-with open(os.path.join(output_model_path, 'apireturns.txt'), 'w') as f:
-    json.dump(responses, f, indent=4)
+
+if __name__ == '__main__':
+    main(*sys.argv[1:2])

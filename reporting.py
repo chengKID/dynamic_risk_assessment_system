@@ -3,13 +3,17 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import numpy as np
 from sklearn import metrics
+import matplotlib
 import matplotlib.pyplot as plt
 import seaborn as sns
 import json
 import os
+import sys
 
 from diagnostics import model_predictions
 
+
+matplotlib.use('Agg')
 
 ############### Load config.json and get path variables
 with open('config.json','r') as f:
@@ -23,7 +27,7 @@ TARGET = 'exited'
 
 
 ############## Function for reporting
-def score_model():
+def score_model(output_filename='confusionmatrix.png'):
     """Plot the deployed model's confusion matrix on the test data."""
     test_data = pd.read_csv(os.path.join(test_data_path, 'testdata.csv'))
     y_true = test_data[TARGET]
@@ -41,11 +45,11 @@ def score_model():
     fig.tight_layout()
 
     os.makedirs(output_model_path, exist_ok=True)
-    fig.savefig(os.path.join(output_model_path, 'confusionmatrix.png'))
+    fig.savefig(os.path.join(output_model_path, output_filename))
     plt.close(fig)
 
     return matrix
 
 
 if __name__ == '__main__':
-    score_model()
+    score_model(*sys.argv[1:2])
