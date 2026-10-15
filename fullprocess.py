@@ -85,30 +85,20 @@ def main():
 
     with open(os.path.join(prod_deployment_path, 'latestscore.txt'), 'r') as f:
         baseline_score = float(f.read().strip())
-    deployed_model = scoring.load_model(os.path.join(prod_deployment_path, 'trainedmodel.pkl'))
-    new_data = pd.read_csv(os.path.join(output_folder_path, 'finaldata.csv'))
-    new_score = scoring.score_model(deployed_model, new_data)  # no score_path: baseline untouched
-    log(f"Deployed baseline F1 = {baseline_score:.4f}, F1 on new data = {new_score:.4f}")
+    log("Training a candidate on the newly ingested data.")
+    subprocess.run([sys.executable, 'training.py'], check=True)
+    new_model = scoring.load_model(os.path.join(output_model_path, 'trainedmodel.pkl'))
+    test_score = scoring.score_model(
+        new_model, scoring.load_test_data(),
+        score_path=os.path.join(output_model_path, 'latestscore.txt'),
+    )
+    log(f"Production baseline F1 = {baseline_score:.4f}, candidate test F1 = {test_score:.4f}")
 
-    if new_score < baseline_score:
-        log("Model drift detected - retraining and evaluating candidate.")
-        subprocess.run([sys.executable, 'training.py'], check=True)
-        new_model = scoring.load_model(os.path.join(output_model_path, 'trainedmodel.pkl'))
-        test_data = scoring.load_test_data()
-        production_test_score = scoring.score_model(deployed_model, test_data)
-        test_score = scoring.score_model(
-            new_model, test_data,
-            score_path=os.path.join(output_model_path, 'latestscore.txt'),
-        )
-        log(f"Retrained model F1 on test data = {test_score:.4f}")
-        log(f"Production model F1 on the same test data = {production_test_score:.4f}")
-        if test_score > production_test_score:
-            subprocess.run([sys.executable, 'deployment.py'], check=True)
-            log(f"Deployed improved model to {prod_deployment_path}.")
-        else:
-            log("Candidate did not improve test F1 - keeping production unchanged.")
+    if test_score > baseline_score:
+        subprocess.run([sys.executable, 'deployment.py'], check=True)
+        log(f"Deployed improved model to {prod_deployment_path}.")
     else:
-        log("No model drift - keeping the deployed model and baseline score.")
+        log("Candidate did not improve F1 - keeping production unchanged and stopping.")
 
     reporting.score_model('confusionmatrix2.png')
     log(f"Saved {os.path.join(output_model_path, 'confusionmatrix2.png')}")

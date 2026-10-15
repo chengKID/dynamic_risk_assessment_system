@@ -17,24 +17,28 @@
                 "column": "lastmonth_activity",
                 "mean": 5625.923076923077,
                 "median": 425.0,
+                "mode": 0.0,
                 "std": 19444.774621317832
             },
             {
                 "column": "lastyear_activity",
                 "mean": 763.5384615384615,
                 "median": 97.5,
+                "mode": 0.0,
                 "std": 2016.6093569309696
             },
             {
                 "column": "number_of_employees",
                 "mean": 457.46153846153845,
                 "median": 99.0,
+                "mode": 2.0,
                 "std": 800.604832899189
             },
             {
                 "column": "exited",
                 "mean": 0.5,
                 "median": 0.5,
+                "mode": 0.0,
                 "std": 0.5099019513592785
             }
         ]
@@ -158,8 +162,8 @@
             }
         ],
         "execution_time_seconds": [
-            0.6169467140061897,
-            1.6314292730021407
+            0.6589262990019051,
+            1.896432679001009
         ],
         "missing_data_percent": [
             0.0,
