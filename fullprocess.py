@@ -91,16 +91,22 @@ def main():
     log(f"Deployed baseline F1 = {baseline_score:.4f}, F1 on new data = {new_score:.4f}")
 
     if new_score < baseline_score:
-        log("Model drift detected - retraining and redeploying.")
+        log("Model drift detected - retraining and evaluating candidate.")
         subprocess.run([sys.executable, 'training.py'], check=True)
         new_model = scoring.load_model(os.path.join(output_model_path, 'trainedmodel.pkl'))
+        test_data = scoring.load_test_data()
+        production_test_score = scoring.score_model(deployed_model, test_data)
         test_score = scoring.score_model(
-            new_model, scoring.load_test_data(),
+            new_model, test_data,
             score_path=os.path.join(output_model_path, 'latestscore.txt'),
         )
         log(f"Retrained model F1 on test data = {test_score:.4f}")
-        subprocess.run([sys.executable, 'deployment.py'], check=True)
-        log(f"Deployed new model to {prod_deployment_path}.")
+        log(f"Production model F1 on the same test data = {production_test_score:.4f}")
+        if test_score > production_test_score:
+            subprocess.run([sys.executable, 'deployment.py'], check=True)
+            log(f"Deployed improved model to {prod_deployment_path}.")
+        else:
+            log("Candidate did not improve test F1 - keeping production unchanged.")
     else:
         log("No model drift - keeping the deployed model and baseline score.")
 
