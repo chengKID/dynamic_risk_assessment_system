@@ -43,6 +43,7 @@ def dataframe_summary():
             'mean': float(numerics[col].mean()),
             'median': float(numerics[col].median()),
             'std': float(numerics[col].std()),
+            'mode': float(numerics[col].mode().iloc[0]),
         }
         for col in numerics.columns
     ]
