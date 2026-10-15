@@ -86,19 +86,20 @@ def main():
     with open(os.path.join(prod_deployment_path, 'latestscore.txt'), 'r') as f:
         baseline_score = float(f.read().strip())
     log("Training a candidate on the newly ingested data.")
-    subprocess.run([sys.executable, 'training.py'], check=True)
-    new_model = scoring.load_model(os.path.join(output_model_path, 'trainedmodel.pkl'))
-    test_score = scoring.score_model(
-        new_model, scoring.load_test_data(),
-        score_path=os.path.join(output_model_path, 'latestscore.txt'),
-    )
-    log(f"Production baseline F1 = {baseline_score:.4f}, candidate test F1 = {test_score:.4f}")
+    deployed_model = scoring.load_model(os.path.join(prod_deployment_path, 'trainedmodel.pkl'))
+    new_data = pd.read_csv(os.path.join(output_folder_path, 'finaldata.csv'))
+    drift_score = scoring.score_model(deployed_model, new_data)
+    log(f"Baseline F1 = {baseline_score:.4f}, deployed model F1 on new data = {drift_score:.4f}")
 
-    if test_score > baseline_score:
+    if drift_score < baseline_score:
+        log("Model drift detected - retraining and redeploying.")
+        subprocess.run([sys.executable, 'training.py'], check=True)
+        new_model = scoring.load_model(os.path.join(output_model_path, 'trainedmodel.pkl'))
+        scoring.score_model(new_model, scoring.load_test_data(),
+                            score_path=os.path.join(output_model_path, 'latestscore.txt'))
         subprocess.run([sys.executable, 'deployment.py'], check=True)
-        log(f"Deployed improved model to {prod_deployment_path}.")
     else:
-        log("Candidate did not improve F1 - keeping production unchanged and stopping.")
+        log("No model drift - keeping the deployed model and baseline unchanged.")
 
     reporting.score_model('confusionmatrix2.png')
     log(f"Saved {os.path.join(output_model_path, 'confusionmatrix2.png')}")
